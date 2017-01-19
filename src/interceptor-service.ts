@@ -143,12 +143,15 @@ export class InterceptorService extends Http {
   }
 
   /**
-   * Adds this interceptor
+   * Appends this interceptor to the list of interceptors
    */
   addInterceptor(interceptor: Interceptor) {
     this.interceptors.push(interceptor);
   }
 
+  /**
+   * Sets response transformer
+   */
   set realResponseObservableTransformer(value: RealResponseObservableTransformer) {
     this._realResponseObservableTransformer = value;
   }
