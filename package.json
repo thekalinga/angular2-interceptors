@@ -1,9 +1,9 @@
 {
-  "name": "ng2-http-interceptor",
+  "name": "ng4-http-interceptor",
   "version": "1.0.0",
-  "description": "Angular2 interceptor service implementation",
+  "description": "Angular4 interceptor service implementation",
   "keywords": [
-    "Angular 2",
+    "Angular 4",
     "Http interceptor",
     "Interceptor"
   ],
@@ -25,15 +25,15 @@
     "build": "rimraf lib && tsc -p src"
   },
   "peerDependencies": {
-    "@angular/core": "^2.0.0",
-    "@angular/http": "^2.0.0",
+    "@angular/core": ">=4.0.0-beta.1 <5",
+    "@angular/http": ">=4.0.0-beta.1 <5",
     "rxjs": "^5.0.0"
   },
   "devDependencies": {
-    "@angular/common": "^2.0.0",
-    "@angular/core": "^2.0.0",
-    "@angular/http": "^2.0.0",
-    "@angular/platform-browser": "^2.0.0",
+    "@angular/common": ">=4.0.0-beta.1 <5",
+    "@angular/core": ">=4.0.0-beta.1 <5",
+    "@angular/http": ">=4.0.0-beta.1 <5",
+    "@angular/platform-browser": ">=4.0.0-beta.1 <5",
     "rxjs": "^5.0.0",
     "typescript": "^2.0.0",
     "zone.js": "^0.6.26"

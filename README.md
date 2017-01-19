@@ -1,4 +1,4 @@
-# ng2-http-interceptor
+# ng4-http-interceptor
 
 This package adds the intercepting capabilities to `http` module of Angular 2+, by extending the @angular/http class. For concept behind Interceptor, take a look at the [wiki](https://github.com/voliva/angular2-interceptors/wiki/Concept)
 
@@ -7,7 +7,7 @@ This package adds the intercepting capabilities to `http` module of Angular 2+, 
 To install, just run in your angular project:
 
 ```
-npm install ng2-http-interceptor --save
+npm install ng4-http-interceptor --save
 ```
 
 And it should be importable with webpack out of the box
@@ -19,7 +19,7 @@ Interceptors are registered when the service is created (to avoid any race-condi
 ```ts
 import { XHRBackend, RequestOptions } from '@angular/http';
 
-import { InterceptorService } from 'ng2-http-interceptor';
+import { InterceptorService } from 'ng4-http-interceptor';
 
 export function interceptorFactory(xhrBackend: XHRBackend, requestOptions: RequestOptions) {
   let service = new InterceptorService(xhrBackend, requestOptions);
@@ -50,7 +50,7 @@ export function interceptorFactory(xhrBackend: XHRBackend, requestOptions: Reque
 Once we have it set up, we can use it in our Controllers as if we were using the default Angular `Http` service:
 ```ts
 import { Component } from '@angular/core';
-import { InterceptorService } from 'ng2-http-interceptor';
+import { InterceptorService } from 'ng4-http-interceptor';
 
 @Component({
   selector: 'my-component',
@@ -148,7 +148,7 @@ export interface Interceptor {
 One that will get the request that's about to be sent to the server, and another that will get the response that the server just sent. For that, we just need to create a new class that implements Interceptor:
 
 ```ts
-import { Interceptor, InterceptorRequest, InterceptorResponseWrapper } from 'ng2-http-interceptor';
+import { Interceptor, InterceptorRequest, InterceptorResponseWrapper } from 'ng4-http-interceptor';
 
 export class ServerURLInterceptor implements Interceptor {
     beforeRequest(request: InterceptorRequest): Observable<InterceptorRequest> | InterceptorRequest | void {
@@ -216,7 +216,7 @@ If you are using the `provideInterceptorService` option (without AoT Compiler su
 
 If our `ServerURLInterceptor` were a Service, we would have a module declaration like:
 ```ts
-import { InterceptorService } from 'ng2-http-interceptor';
+import { InterceptorService } from 'ng4-http-interceptor';
 import { ServerURLInterceptor } from './services/serverURLInterceptor';
 import { XHRBackend, RequestOptions } from '@angular/http';
 
