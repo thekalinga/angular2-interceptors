@@ -22,8 +22,6 @@ import { InterceptorResponseWrapperBuilder } from './interceptor-response-wrappe
 import { InterceptorUtils } from './interceptor-utils';
 import { RealResponseObservableTransformer } from './real-response-observable-transformer';
 
-import './object-assign-polyfill';
-
 /**
  * Wrapper around native angular `Http` service.
  * Allows you to add `Interceptor`s that lets you do
@@ -215,21 +213,21 @@ export class InterceptorService extends Http {
     let request$: Observable<InterceptorRequest> = Observable.of(params);
 
     for (let i: number = 0; i < this.interceptors.length; i++) {
-      let bf: Interceptor = this.interceptors[i];
-      if (!bf.beforeRequest) {
+      let interceptor: Interceptor = this.interceptors[i];
+      if (!interceptor.beforeRequest) {
         continue;
       }
 
       request$ = request$
         .flatMap<InterceptorRequest, InterceptorRequest>((request: InterceptorRequest, index: number) => {
-          let interceptorRequestInternal = new InterceptorService._InterceptorRequestBuilder(request);
+          let requestInternal = new InterceptorService._InterceptorRequestBuilder(request);
 
-          if (interceptorRequestInternal.err || interceptorRequestInternal.alreadyShortCircuited) {
+          if (requestInternal.err || requestInternal.alreadyShortCircuited) {
             return Observable.of(request);
-          } else if (interceptorRequestInternal.shortCircuitAtCurrentStep) {
-            if (interceptorRequestInternal.alsoForceRequestCompletion) {
+          } else if (requestInternal.shortCircuitAtCurrentStep) {
+            if (requestInternal.alsoForceRequestCompletion) {
               return Observable.empty();
-            } else if (!interceptorRequestInternal.alreadyShortCircuited) {
+            } else if (!requestInternal.alreadyShortCircuited) {
               let requestBuilder = InterceptorService._InterceptorRequestBuilder.new(request)
                 .shortCircuitAtCurrentStep(false)
                 .shortCircuitTriggeredBy(this.interceptors.length - 1) // since the last interceptor in the chain asked for short circuiting
@@ -240,17 +238,17 @@ export class InterceptorService extends Http {
             }
           }
 
-          let modifiedRequest = bf.beforeRequest(request);
-          let newInterceptorRequest$: Observable<InterceptorRequest>;
+          let processedRequest = interceptor.beforeRequest(request);
+          let processedRequest$: Observable<InterceptorRequest>;
 
-          if (!modifiedRequest) { // if no request is returned; just proceed with the original request
-            newInterceptorRequest$ = Observable.of(request);
-          } else if (modifiedRequest instanceof Observable) {
-            newInterceptorRequest$ = <Observable<InterceptorRequest>>modifiedRequest;
+          if (!processedRequest) { // if no request is returned; just proceed with the original request
+            processedRequest$ = Observable.of(request);
+          } else if (processedRequest instanceof Observable) {
+            processedRequest$ = <Observable<InterceptorRequest>>processedRequest;
           } else {
-            newInterceptorRequest$ = Observable.of(<InterceptorRequest>modifiedRequest);
+            processedRequest$ = Observable.of(<InterceptorRequest>processedRequest);
           }
-          return newInterceptorRequest$
+          return processedRequest$
             .catch((err: any, caught: Observable<InterceptorRequest>) => {
               let responseBuilder = InterceptorService._InterceptorRequestBuilder.new(request)
                 .err(err)
@@ -281,44 +279,47 @@ export class InterceptorService extends Http {
         continue;
       }
 
-      let lastResponseWrapper: InterceptorResponseWrapper;
+      responseWrapper$ = responseWrapper$
+        .flatMap<InterceptorResponseWrapper, InterceptorResponseWrapper>((responseWrapper: InterceptorResponseWrapper, _: any) => {
+          if (responseWrapper.forceRequestCompletion) {
+            return Observable.empty();
+          } else if (responseWrapper.forceReturnResponse) {
+            return Observable.of(responseWrapper);
+          }
 
-      responseWrapper$ = responseWrapper$.flatMap<InterceptorResponseWrapper, InterceptorResponseWrapper>((responseWrapper: InterceptorResponseWrapper, _: any) => {
-        lastResponseWrapper = responseWrapper;
-        if (responseWrapper.forceRequestCompletion) {
-          return Observable.empty();
-        } else if (responseWrapper.forceReturnResponse) {
-          return Observable.of(responseWrapper);
-        }
+          let processedResponse;
 
-        let processedResponse;
+          const invokeErrHandler = responseWrapper.err && !responseWrapper.response;
+          const invokeShortCircuitHandler = responseWrapper.isShortCircuited() && !responseWrapper.response;
 
-        const invokeErrHandler = responseWrapper.err && !responseWrapper.response;
-        const invokeShortCircuitHandler = responseWrapper.isShortCircuited() && !responseWrapper.response;
+          if (invokeErrHandler) {
+            processedResponse = interceptor.onErr(responseWrapper);
+          } else if (invokeShortCircuitHandler) {
+            processedResponse = interceptor.onShortCircuit(responseWrapper, index);
+          } else {
+            processedResponse = interceptor.onResponse(responseWrapper, index);
+          }
 
-        if (invokeErrHandler) {
-          processedResponse = interceptor.onErr(responseWrapper);
-        } else if (invokeShortCircuitHandler) {
-          processedResponse = interceptor.onShortCircuit(responseWrapper, index);
-        } else {
-          processedResponse = interceptor.onResponse(responseWrapper, index);
-        }
+          let procesedResponseWrapper$: Observable<InterceptorResponseWrapper>;
 
-        if (!processedResponse) {
-          return Observable.of(responseWrapper);
-        } else if (processedResponse instanceof InterceptorResponseWrapper) {
-          return Observable.of(processedResponse as InterceptorResponseWrapper);
-        } else {
-          return processedResponse as Observable<InterceptorResponseWrapper>;
-        }
-      }).catch((err: any, _: Observable<InterceptorResponseWrapper>) => {
-        let responseBuilder = InterceptorService._InterceptorResponseWrapperBuilder.new(lastResponseWrapper)
-          .response(undefined)
-          .err(err)
-          .errEncounteredAt(index)
-          .errEncounteredInRequestCycle(false);
-        return Observable.of(responseBuilder.build());
-      });
+          if (!processedResponse) {
+            procesedResponseWrapper$ = Observable.of(responseWrapper);
+          } else if (processedResponse instanceof InterceptorResponseWrapper) {
+            procesedResponseWrapper$ = Observable.of(processedResponse as InterceptorResponseWrapper);
+          } else {
+            procesedResponseWrapper$ = processedResponse as Observable<InterceptorResponseWrapper>;
+          }
+
+          return procesedResponseWrapper$
+            .catch((err: any, _: Observable<InterceptorResponseWrapper>) => {
+              let responseBuilder = InterceptorService._InterceptorResponseWrapperBuilder.new(responseWrapper)
+                .response(undefined)
+                .err(err)
+                .errEncounteredAt(index)
+                .errEncounteredInRequestCycle(false);
+              return Observable.of(responseBuilder.build());
+            })
+        });
     }
 
     return responseWrapper$;
