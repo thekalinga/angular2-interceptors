@@ -1,14 +1,14 @@
-# NG2-Interceptors
+# ng-http-interceptor
 
-This package adds the interceptor feature to Angular 2, by extending the @angular/http class. For concept behind Interceptor, take a look at the [wiki](https://github.com/voliva/angular2-interceptors/wiki/Concept)
+This package adds the intercepting capabilities to `http` module of Angular 2+, by extending the @angular/http class. For concept behind Interceptor, take a look at the [wiki](https://github.com/voliva/angular2-interceptors/wiki/Concept)
 
 # Installation
 
 To install, just run in your angular project:
 
-````
-npm install ng2-interceptors --save
-````
+```
+npm install ng-http-interceptor --save
+```
 
 And it should be importable with webpack out of the box
 
@@ -16,11 +16,12 @@ And it should be importable with webpack out of the box
 ## Set up InterceptorService
 Interceptors are registered when the service is created (to avoid any race-condition). To do so, you have to provide the instance of the service by yourself. So on your module declaration, you should put a provider like:
 
-````
-import { InterceptorService } from 'ng2-interceptors';
+```ts
 import { XHRBackend, RequestOptions } from '@angular/http';
 
-export function interceptorFactory(xhrBackend: XHRBackend, requestOptions: RequestOptions){
+import { InterceptorService } from 'ng-http-interceptor';
+
+export function interceptorFactory(xhrBackend: XHRBackend, requestOptions: RequestOptions) {
   let service = new InterceptorService(xhrBackend, requestOptions);
   // Add interceptors here with service.addInterceptor(interceptor)
   return service;
@@ -43,35 +44,13 @@ export function interceptorFactory(xhrBackend: XHRBackend, requestOptions: Reque
   ],
   bootstrap: [AppComponent]
 })
-````
-
-There's a shorthand for this setup by using `provideInterceptorService`, but if you use AoT (Ahead-of-time) compilation it will fail. In fact, exporting the `interceptorFactory` is to make the AoT Compiler, as it needs all functions used in the provider to be exported.
-
-````
-import { provideInterceptorService } from 'ng2-interceptors';
-
-@NgModule({
-  declarations: [
-    ...
-  ],
-  imports: [
-    ...,
-    HttpModule
-  ],
-  providers: [
-    provideInterceptorService([
-      // Add interceptors here, like "new ServerURLInterceptor()" or just "ServerURLInterceptor" if it has a provider
-    ])
-  ],
-  bootstrap: [AppComponent]
-})
-````
+```
 
 ## Using InterceptorService
 Once we have it set up, we can use it in our Controllers as if we were using the default Angular `Http` service:
-````
+```ts
 import { Component } from '@angular/core';
-import { InterceptorService } from 'ng2-interceptors';
+import { InterceptorService } from 'ng-http-interceptor';
 
 @Component({
   selector: 'my-component',
@@ -91,65 +70,135 @@ export class MyComponent {
       () => console.log("Yay"));
   }
 }
-````
+```
 
 We can also "cheat" the Injector so that every time we ask for the `Http` we get the `InterceptorService` instead. All we have to do is replace `InterceptorService` on the provider definition for `Http`, and then we can get our service when we use `private http: Http`:
-````
-  {
-    provide: Http,
-    useFactory: interceptorFactory,
-    deps: [XHRBackend, RequestOptions]
-  }
-````
+```ts
+{
+  provide: Http,
+  useFactory: interceptorFactory,
+  deps: [XHRBackend, RequestOptions]
+}
+```
 
 ## Creating your own Interceptor
-Basically, an interceptor is represented by one pair of functions: One that will get the request that's about to be sent to the server, and another that will get the response that the server just sent. For that, we just need to create a new class that implements Interceptor:
+Basically, an interceptor has the option to selectively implement one more of the following methods depending on what part of the flow it wants to intercept. i.e modify flow/take action.
 
-````
-import { Interceptor, InterceptedRequest, InterceptedResponse } from 'ng2-interceptors';
+Here is the interceptor interface that details which method is invoked in what part of the flow
+
+```ts
+/**
+ * Represents an intermediary in the interceptor chain that intercept both HTTP request & response flow
+ *
+ * Implementors will have the ability to
+ * 1. Modify the request the along the chain/perform operations such as logging/caching/tranformations; such as adding a header
+ * 2. Modify the response along the chain
+ * 3. Intercept errors; Can chose to cascade/generate responses
+ * 4. Short circuit complete request flow dynamically based on the dynamic conditions without affecting the actual controller/service
+ * 5. Ability to perform custom logic; such as redirecting the users to login page, if the server returns 401, transparantly without polluting all your services
+ *
+ * NOTE: Never store any data that's request specific as properties on the Interceptor implementation, as the interceptor instance is shared across all http requests within the application. Instead use `InterceptorRequestOptionsArgs.sharedData` (or) `InterceptorRequest.sharedData` (or) `InterceptorResponseWrapper.sharedData` as request private storage
+ */
+export interface Interceptor {
+
+  /**
+   * Invoked once for each of the interceptors in the chain; in the order defined in the chain, unless any of the earlier interceptors asked to complete the flow/return response/throw error to subscriber
+   *
+   * Gives the ability to transform the request
+   */
+  beforeRequest?(request: InterceptorRequest, interceptorStep?: number): Observable<InterceptorRequest> | InterceptorRequest | void;
+
+  /**
+   * Invoked once for each of the interceptors in the chain; in the reverse order of chain, unless any of the earlier interceptors asked to complete the flow/return response/throw error to subscriber
+   *
+   * Gives the ability to transform the response in each of the following scenarios
+   * 1. For normal response flow; i.e no errors along the chain/no interceptor wanted to short the circuit
+   * 2. One of the interceptor indicated to short the circuit & one of the earlier interceptor in chain returned a InterceptorResponseWrapper when its onShortCircuit(..) method is invoked
+   * 3. One of the interceptor threw error & one of the earlier interceptor in chain returned a `InterceptorResponseWrapper` when its onErr(..) method is invoked
+   *
+   * Set any of the following properties of `InterceptorResponseWrapper` to be able to change the way response to sent to subscriber
+   * a. `forceReturnResponse` - will send the `Response` to the subscriber directly by skipping all intermediate steps
+   * b. `forceRequestCompletion` - will send completion event, so that complete(..) will be invoked on the subscriber
+   *
+   * You can know if the respons is generated by short circuit handler/err handler, by looking at the `responseGeneratedByShortCircuitHandler` & `responseGeneratedByErrHandler` flags
+   */
+  onResponse?(response: InterceptorResponseWrapper, interceptorStep?: number): Observable<InterceptorResponseWrapper> | InterceptorResponseWrapper | void;
+
+  /**
+   * Invoked once for each of the interceptors in the chain; in the reverse order of chain, if any of the `beforeRequest(..)` responded by setting `shortCircuitAtCurrentStep` property of `InterceptorRequest`
+   * Use this method to generate a response that gets sent to the subscriber.
+   * If you return nothing, the `onShortCircuit(..) will be cascaded along the interceptor chain
+   * If you return an Observable<InterceptorResponseWrapper> | InterceptorResponseWrapper, this rest of the flow would be continued on `onResponse(..)` instead of `onErr(..)` on the next interceptor in the chain & the final result would be sent to the subscriber via next(..) callback
+   * If no `onShortCircuit(..)` handlers before this handler returns any response, an error will be thrown back to the subscriber
+   */
+  onShortCircuit?(response: InterceptorResponseWrapper, interceptorStep?: number): Observable<InterceptorResponseWrapper> | InterceptorResponseWrapper | void;
+
+  /**
+   * Invoked when the flow encounters any error along the interceptor chain.
+   * Use this method to generate a response that gets sent to the subscriber.
+   * If you return nothing, the `onErr(..) will be cascaded along the interceptor chain
+   * If you return an Observable<InterceptorResponseWrapper> | InterceptorResponseWrapper, this rest of the flow would be continued on `onResponse(..)` instead of `onErr(..)` on the next interceptor in the chain & the final result would be sent to the subscriber via next(..) callback
+   * If no `onErr(..)` handlers before this handler returns any response, the error will be thrown back to the subscriber
+   */
+  onErr?(err: any): Observable<InterceptorResponseWrapper> | InterceptorResponseWrapper | void;
+
+}
+```
+
+One that will get the request that's about to be sent to the server, and another that will get the response that the server just sent. For that, we just need to create a new class that implements Interceptor:
+
+```ts
+import { Interceptor, InterceptorRequest, InterceptorResponseWrapper } from 'ng-http-interceptor';
 
 export class ServerURLInterceptor implements Interceptor {
-    public interceptBefore(request: InterceptedRequest): InterceptedRequest {
-        // Do whatever with request: get info or edit it
-
-        return request;
-        /*
-          You can return:
-            - Request: The modified request
-            - Nothing: For convenience: It's just like returning the request
-            - <any>(Observable.throw("cancelled")): Cancels the request, interrupting it from the pipeline, and calling back 'interceptAfter' in backwards order of those interceptors that got called up to this point.
-        */
+    beforeRequest(request: InterceptorRequest): Observable<InterceptorRequest> | InterceptorRequest | void {
+        // Do whatever with request, such as chaing request by adding additional headers such as `Content-Type` (or) `Authorization`
+        // refer to jsdoc of each of 'InterceptorRequest' to know the significance of return values & additional features such as short circuiting the whole flow
+        let modifiedOptions: RequestOptionsArgs = addHeaders(request.options);
+        return InterceptorRequestBuilder.from(request)
+          .options(modifiedOptions)
+          .build();
     }
 
-    public interceptAfter(response: InterceptedResponse): InterceptedResponse {
-        // Do whatever with response: get info or edit it
+    onResponse(responseWrapper: InterceptorResponseWrapper, interceptorStep?: number): Observable<InterceptorResponseWrapper> | InterceptorResponseWrapper | void {
+        // Do whatever with responseWrapper: get/edit response
+        // refer to jsdoc of each of 'InterceptorResponseWrapper' to know the significance of return values & additional features such as short circuiting the whole flow
 
-        return response;
-        /*
-          You can return:
-            - Response: The modified response
-            - Nothing: For convenience: It's just like returning the response
-        */
+        return InterceptorResponseWrapperBuilder.from(responseWrapper)
+          .forceReturnResponse(true)
+          .build();
     }
+
+    // can chose to seletively implement any of the four hooks mentioned in the Interceptor interface
 }
-````
+```
 
-Both methods are optional, so you can implement Interceptors that just take request or responses.
+All four methods are optional, so you can implement the callback method depending on whether you want to augment the request/response/handling exceptions/handling short circuits
 
-Notice how there's a different object of `InterceptedRequest` and `InterceptedResponse`: They are modifications of angular's Http `Request` and `Response` needed for the whole Interceptor feature and to pass additional options that may be needed for specific interceptors (like to enable/disable them for specific calls, etc.) the API is:
+Notice how there's a different object of `InterceptorRequest` and `InterceptedResponseWrapper`.
 
-````
-interface InterceptedRequest {
+`InterceptorRequest` is a modification of angular's Http `Request` & `InterceptedResponseWrapper.response` is angular's Http `Response`.
+
+Use `sharedData` to share data across the interceptors for this request. Each http request flow will have its own instance of shared data.
+One usecase for this `sharedData` is to store a flag to enable caching for a specific requests, which the cahching interceptor will adhere to.
+
+the API is:
+
+```ts
+class InterceptorRequest {
     url: string,
     options?: RequestOptionsArgs, // Angular's HTTP Request options
-    interceptorOptions?: any
+    sharedData?: any,
+    // a lot more properties; refer to jsdoc
 }
-interface InterceptedResponse {
+
+class InterceptedResponseWrapper {
     response: Response, // Angular's HTTP Response
-    interceptorOptions?: any
+    sharedData?: any,
+    // a lot more properties; refer to jsdoc
 }
-````
-`interceptorOptions` on `InterceptedRequest` is guaranteed to be the same of that one of `InterceptedResponse` for the same call: The stuff you put in `interceptorOptions` while in `interceptBefore` will be available when you get `interceptAfter` called.
+```
+`sharedData` on `InterceptorRequest` is guaranteed to be the same of that one of `InterceptedResponseWrapper` for the same call: The stuff you put in `interceptorOptions` while in `interceptBefore` will be available when you get `onResponse(..)` called.
 
 ## Creating one Injectable Interceptor
 Interceptors are usually pure classes with pure functions: Given a call, they return a modified one, but sometimes we need these Interceptors to be actual Services to be used all around our application.
@@ -166,8 +215,8 @@ To do that you have to do some steps in the module/factory declaration file:
 If you are using the `provideInterceptorService` option (without AoT Compiler support), then you can skip steps 2-4.
 
 If our `ServerURLInterceptor` were a Service, we would have a module declaration like:
-````
-import { InterceptorService } from 'ng2-interceptors';
+```ts
+import { InterceptorService } from 'ng-http-interceptor';
 import { ServerURLInterceptor } from './services/serverURLInterceptor';
 import { XHRBackend, RequestOptions } from '@angular/http';
 
@@ -195,4 +244,4 @@ export function interceptorFactory(xhrBackend: XHRBackend, requestOptions: Reque
   ],
   bootstrap: [AppComponent]
 })
-````
+```

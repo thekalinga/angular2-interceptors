@@ -1,11 +1,11 @@
 import { Request, RequestOptionsArgs } from '@angular/http';
 
-import { InterceptorRequestWrapperBuilder } from './interceptor-request-wrapper-builder';
+import { InterceptorRequestBuilder } from './interceptor-request-builder';
 import { InterceptorUtils } from './interceptor-utils';
 
-export class InterceptorRequestWrapper {
+export class InterceptorRequest {
 
-  constructor(builder: InterceptorRequestWrapperBuilder) {
+  constructor(builder: InterceptorRequestBuilder) {
     InterceptorUtils.assign(this, builder);
   }
 

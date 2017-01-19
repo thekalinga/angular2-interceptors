@@ -3,14 +3,14 @@ import { resolveReflectiveProviders } from '@angular/core/src/di/reflective_prov
 import { reflector } from '@angular/platform-browser/src/private_import_core';
 import { Request, Response } from '@angular/http';
 
-import { InterceptorRequestWrapper } from "./interceptor-request-wrapper";
+import { InterceptorRequest } from "./interceptor-request";
 import { InterceptorUtils } from './interceptor-utils';
 
 /**
- * Utility builder for creating a new instance of InterceptorRequestWrapper
- * Use InterceptorRequestWrapperBuilder.new() to instantiate the builder
+ * Utility builder for creating a new instance of InterceptorRequest
+ * Use InterceptorRequestBuilder.new() to instantiate the builder
  */
-export class InterceptorRequestWrapperBuilder {
+export class InterceptorRequestBuilder {
 
   protected _url: string | Request;
   protected _options?: RequestOptionsArgs;
@@ -23,44 +23,44 @@ export class InterceptorRequestWrapperBuilder {
   protected _errEncounteredAt?: number;
 
   /**
-   * Use InterceptorResponseBuilder.new() to instantiate the builder
+   * Use InterceptorRequestBuilder.new() to instantiate the builder
    */
   protected constructor() { }
 
-  static new(requestWrapper: InterceptorRequestWrapper): InterceptorRequestWrapperBuilder {
-    const builder = new InterceptorRequestWrapperBuilder();
-    InterceptorUtils.assign(builder, <InterceptorRequestWrapper>requestWrapper);
+  static new(request: InterceptorRequest): InterceptorRequestBuilder {
+    const builder = new InterceptorRequestBuilder();
+    InterceptorUtils.assign(builder, <InterceptorRequest>request);
     return builder;
   }
 
-  url(url: string | Request): InterceptorRequestWrapperBuilder {
+  url(url: string | Request): InterceptorRequestBuilder {
     this._url = url;
     return this;
   }
 
-  options(options: RequestOptionsArgs): InterceptorRequestWrapperBuilder {
+  options(options: RequestOptionsArgs): InterceptorRequestBuilder {
     this._options = options;
     return this;
   }
 
-  sharedData(sharedData: any): InterceptorRequestWrapperBuilder {
+  sharedData(sharedData: any): InterceptorRequestBuilder {
     this._sharedData = sharedData;
     return this;
   }
 
-  shortCircuitAtCurrentStep(shortCircuitAtCurrentStep: boolean): InterceptorRequestWrapperBuilder {
+  shortCircuitAtCurrentStep(shortCircuitAtCurrentStep: boolean): InterceptorRequestBuilder {
     this._shortCircuitAtCurrentStep = shortCircuitAtCurrentStep;
     return this;
   }
 
-  alsoForceRequestCompletion(alsoForceRequestCompletion: boolean): InterceptorRequestWrapperBuilder {
+  alsoForceRequestCompletion(alsoForceRequestCompletion: boolean): InterceptorRequestBuilder {
     this._alsoForceRequestCompletion = alsoForceRequestCompletion;
     return this;
   }
 
-  build(): InterceptorRequestWrapper {
+  build(): InterceptorRequest {
     this._sharedData = this._sharedData || {};
-    return new InterceptorRequestWrapper(this);
+    return new InterceptorRequest(this);
   }
 
 }

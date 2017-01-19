@@ -1,2 +1,9 @@
-// exports.InterceptorService = require('./lib/interceptor-service').InterceptorService;
-// exports.provideInterceptorService = require('./lib/interceptor-provider').provideInterceptorService;
+exports.InterceptorRequestBuilder = require('./lib/interceptor-request-builder').InterceptorRequestBuilder;
+exports.InterceptorRequestOptionsArgs = require('./lib/interceptor-request-options-args').InterceptorRequestOptionsArgs;
+exports.InterceptorRequest = require('./lib/interceptor-request').InterceptorRequest;
+exports.InterceptorResponseWrapperBuilder = require('./lib/interceptor-response-wrapper-builder').InterceptorResponseWrapperBuilder;
+exports.InterceptorResponseWrapper = require('./lib/interceptor-response-wrapper').InterceptorResponseWrapper;
+exports.InterceptorService = require('./lib/interceptor-service').InterceptorService;
+exports.InterceptorUtils = require('./lib/interceptor-utils').InterceptorUtils;
+exports.Interceptor = require('./lib/interceptor').Interceptor;
+exports.RealResponseObservableTransformer = require('./lib/real-response-observable-transformer').RealResponseObservableTransformer;

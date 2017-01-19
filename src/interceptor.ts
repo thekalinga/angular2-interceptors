@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs/Rx';
 
-import { InterceptorRequestWrapper } from "./interceptor-request-wrapper";
+import { InterceptorRequest } from "./interceptor-request";
 import { InterceptorResponseWrapper } from "./interceptor-response-wrapper";
 
 /**
@@ -13,7 +13,7 @@ import { InterceptorResponseWrapper } from "./interceptor-response-wrapper";
  * 4. Short circuit complete request flow dynamically based on the dynamic conditions without affecting the actual controller/service
  * 5. Ability to perform custom logic; such as redirecting the users to login page, if the server returns 401, transparantly without polluting all your services
  *
- * NOTE: Never store any data that's request specific as properties on the Interceptor implementation, as the interceptor instance is shared across all http requests within the application. Instead use `InterceptorRequestOptionsArgs.sharedData` (or) `InterceptorRequestWrapper.sharedData` (or) `InterceptorResponseWrapper.sharedData` as request private storage
+ * NOTE: Never store any data that's request specific as properties on the Interceptor implementation, as the interceptor instance is shared across all http requests within the application. Instead use `InterceptorRequestOptionsArgs.sharedData` (or) `InterceptorRequest.sharedData` (or) `InterceptorResponseWrapper.sharedData` as request private storage
  */
 export interface Interceptor {
 
@@ -22,7 +22,7 @@ export interface Interceptor {
    *
    * Gives the ability to transform the request
    */
-  beforeRequest?(request: InterceptorRequestWrapper, interceptorStep?: number): Observable<InterceptorRequestWrapper> | InterceptorRequestWrapper | void;
+  beforeRequest?(request: InterceptorRequest, interceptorStep?: number): Observable<InterceptorRequest> | InterceptorRequest | void;
 
   /**
    * Invoked once for each of the interceptors in the chain; in the reverse order of chain, unless any of the earlier interceptors asked to complete the flow/return response/throw error to subscriber
@@ -41,7 +41,7 @@ export interface Interceptor {
   onResponse?(response: InterceptorResponseWrapper, interceptorStep?: number): Observable<InterceptorResponseWrapper> | InterceptorResponseWrapper | void;
 
   /**
-   * Invoked once for each of the interceptors in the chain; in the reverse order of chain, if any of the `beforeRequest(..)` responded by setting `shortCircuitAtCurrentStep` property of `InterceptorRequestWrapper`
+   * Invoked once for each of the interceptors in the chain; in the reverse order of chain, if any of the `beforeRequest(..)` responded by setting `shortCircuitAtCurrentStep` property of `InterceptorRequest`
    * Use this method to generate a response that gets sent to the subscriber.
    * If you return nothing, the `onShortCircuit(..) will be cascaded along the interceptor chain
    * If you return an Observable<InterceptorResponseWrapper> | InterceptorResponseWrapper, this rest of the flow would be continued on `onResponse(..)` instead of `onErr(..)` on the next interceptor in the chain & the final result would be sent to the subscriber via next(..) callback

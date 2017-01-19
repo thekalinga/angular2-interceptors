@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs/Rx';
 import { Response } from '@angular/http';
-import { InterceptorRequestWrapper } from './interceptor-request-wrapper';
+import { InterceptorRequest } from './interceptor-request';
 
 /**
  * Gives access to the `Observable<Response>` returned by tha angular `Http` api.
@@ -10,5 +10,5 @@ import { InterceptorRequestWrapper } from './interceptor-request-wrapper';
  * 2. Allows user to retry the request if the requets is expired due to connection timeout using `Observable.retry`/`Observable.retryWhen`
  */
 export interface RealResponseObservableTransformer {
-  tranform(response: Observable<Response>, request: InterceptorRequestWrapper): Observable<Response>;
+  tranform(response: Observable<Response>, request: InterceptorRequest): Observable<Response>;
 }
