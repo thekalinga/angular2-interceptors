@@ -203,7 +203,7 @@ export class InterceptorService extends Http {
           if (responseWrapper.err) {
             return Observable.throw(responseWrapper.err);
           } else if (responseWrapper.isShortCircuited()) {
-            return Observable.throw(new Error('Short circuit was triggere, but no short circuit handlers generated any resonse'));
+            return Observable.throw(new Error('Short circuit was triggered, but no short circuit handlers generated any resonse'));
           } else {
             return Observable.throw(new Error('Response is empty'));
           }
