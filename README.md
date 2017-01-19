@@ -1,6 +1,6 @@
 # ng4-http-interceptor
 
-This package adds the intercepting capabilities to `http` module of Angular 2+, by extending the @angular/http class. For concept behind Interceptor, take a look at the [wiki](https://github.com/voliva/angular2-interceptors/wiki/Concept)
+This package adds the intercepting capabilities to `http` module of Angular 4, by extending the @angular/http class. For concept behind Interceptor, take a look at the [wiki](https://github.com/voliva/angular2-interceptors/wiki/Concept)
 
 # Installation
 
