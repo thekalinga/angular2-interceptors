@@ -1,3 +1,4 @@
+exports.HttpDirect = require('./lib/http-direct').HttpDirect;
 exports.InterceptorRequestBuilder = require('./lib/interceptor-request-builder').InterceptorRequestBuilder;
 exports.InterceptorRequestOptionsArgs = require('./lib/interceptor-request-options-args').InterceptorRequestOptionsArgs;
 exports.InterceptorRequest = require('./lib/interceptor-request').InterceptorRequest;

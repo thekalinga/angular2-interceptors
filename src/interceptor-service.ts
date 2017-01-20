@@ -13,6 +13,7 @@ import { RequestOptionsArgs } from '@angular/http/src/interfaces';
 import { Observable, Observer } from 'rxjs/Rx';
 import { ErrorObservable } from 'rxjs/observable/ErrorObservable';
 
+import { HttpDirect } from './http-direct';
 import { InterceptorRequest } from './interceptor-request';
 import { InterceptorResponseWrapper } from './interceptor-response-wrapper';
 import { Interceptor } from './interceptor';
@@ -180,7 +181,7 @@ export class InterceptorService extends Http {
 
         let response$ = super.request(request.url, request.options);
         if (this._realResponseObservableTransformer) {
-          response$ = this._realResponseObservableTransformer.tranform(response$, request);
+          response$ = this._realResponseObservableTransformer.tranform(response$, request, new this.HttpDirect(), this);
         }
 
         return response$.map((response: Response) => {
@@ -516,6 +517,82 @@ export class InterceptorService extends Http {
       return this;
     }
 
+  }
+
+  /**
+   * Returns an implementation that mirrors angular `Http` interface;
+   * This interface allows the response transformers to make calls directly to HTTP calls without being interceted by {@code InterceptorService}; i.e `this`
+   */
+  private get HttpDirect() {
+    let interceptorService = this;
+
+    return class implements HttpDirect {
+
+      request(url: string | Request, options?: RequestOptionsArgs): Observable<Response> {
+        return interceptorService.requestNative(url, options);
+      }
+
+      get(url: string, options?: RequestOptionsArgs): Observable<Response> {
+        return interceptorService.getNative(url, options);
+      }
+
+      post(url: string, body: any, options?: RequestOptionsArgs): Observable<Response> {
+        return interceptorService.postNative(url, body, options);
+      }
+
+      put(url: string, body: any, options?: RequestOptionsArgs): Observable<Response> {
+        return interceptorService.putNative(url, body, options);
+      }
+
+      delete(url: string, options?: RequestOptionsArgs): Observable<Response> {
+        return interceptorService.deleteNative(url, options);
+      }
+
+      patch(url: string, body: any, options?: RequestOptionsArgs): Observable<Response> {
+        return interceptorService.patchNative(url, body, options);
+      }
+
+      head(url: string, options?: RequestOptionsArgs): Observable<Response> {
+        return interceptorService.headNative(url, options);
+      }
+
+      options(url: string, options?: RequestOptionsArgs): Observable<Response> {
+        return interceptorService.optionsNative(url, options);
+      }
+
+    };
+  }
+
+  private requestNative(url: string | Request, options?: RequestOptionsArgs): Observable<Response> {
+    return super.request(url, options);
+  }
+
+  private getNative(url: string, options?: RequestOptionsArgs): Observable<Response> {
+    return super.get(url, options);
+  }
+
+  private postNative(url: string, body: any, options?: RequestOptionsArgs): Observable<Response> {
+    return super.post(url, body, options);
+  }
+
+  private putNative(url: string, body: any, options?: RequestOptionsArgs): Observable<Response> {
+    return super.put(url, body, options);
+  }
+
+  private deleteNative(url: string, options?: RequestOptionsArgs): Observable<Response> {
+    return super.delete(url, options);
+  }
+
+  private patchNative(url: string, body: any, options?: RequestOptionsArgs): Observable<Response> {
+    return super.patch(url, body, options);
+  }
+
+  private headNative(url: string, options?: RequestOptionsArgs): Observable<Response> {
+    return super.head(url, options);
+  }
+
+  private optionsNative(url: string, options?: RequestOptionsArgs): Observable<Response> {
+    return super.options(url, options);
   }
 
 }

@@ -1,3 +1,4 @@
+export { HttpDirect } from "./lib/http-direct";
 export { InterceptorRequestBuilder } from "./lib/interceptor-request-builder";
 export { InterceptorRequestOptionsArgs } from "./lib/interceptor-request-options-args";
 export { InterceptorRequest } from "./lib/interceptor-request";

@@ -72,6 +72,14 @@ export class InterceptorResponseWrapper {
    */
   protected _errEncounteredInRequestCycle?: boolean;
 
+  get url(): string | Request {
+    return this._url;
+  }
+
+  get options(): any {
+    return this._options;
+  }
+
   get response(): Response {
     return this._response;
   }
