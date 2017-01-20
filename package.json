@@ -11,10 +11,12 @@
     "name": "Víctor Oliva",
     "email": "olivarra1@gmail.com"
   },
-  "contributors": [{
-    "name": "Ashok Koyi",
-    "url": "http://thekalinga.in"
-  }],
+  "contributors": [
+    {
+      "name": "Ashok Koyi",
+      "url": "http://thekalinga.in"
+    }
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/voliva/angular2-interceptors"
